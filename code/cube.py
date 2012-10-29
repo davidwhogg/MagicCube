@@ -13,6 +13,15 @@ conventions
 - The colors have integers and one-letter names. The one-letter color names are given by the variable `Cube.colors`.
 - Convention is x before y in face arrays.
 
+to-do
+-----
+
+- Write "turn" function.
+- Write translations to other move languages.
+- Do multi-layer moves (like Rr2).
+- Make perspective views.
+- Figure out a physical "cubie" model to replace the "sticker" model.
+
 """
 
 import numpy as np
