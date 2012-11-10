@@ -41,13 +41,17 @@ class Cube(object):
                np.array([0., 0., -1.]), np.array([0, 0., 1.])]
     colordict = {"w":0, "y":1, "b":2, "g":3, "o":4, "r":5}
     pltpos = [(0., 1.), (0., -1.), (0., 0.), (2., 0.), (1., 0.), (-1., 0.)]
-    pltcolors = [(1.00, 1.00, 1.00), (0.75, 0.75, 0.00), (0.00, 0.00, 0.50),
-                 (0.00, 0.50, 0.00), (1.00, 0.50, 0.00), (0.75, 0.00, 0.00)]
-    labelcolor = (0.25, 0.25, 1.00)
+    labelcolor = (0.75, 0.25, 1.00)
 
-    def __init__(self, N):
+    def __init__(self, N, whiteplastic=False):
         self.N = N
         self.stickers = np.array([np.tile(i, (self.N, self.N)) for i in range(6)])
+        self.facecolors = [(1.00, 1.00, 1.00), (0.75, 0.75, 0.00), (0.00, 0.00, 0.50),
+                           (0.00, 0.50, 0.00), (1.00, 0.50, 0.00), (0.75, 0.00, 0.00)]
+        if whiteplastic:
+            self.plasticcolor = (0.85, 0.85, 0.85)
+        else:
+            self.plasticcolor = (0.15, 0.15, 0.15)
         return None
 
     def move(self, f, l, d):
@@ -146,7 +150,7 @@ class Cube(object):
                         projects = self._render_points(corners, viewpoint)
                         xys = [p[0:2] + shift for p in projects]
                         zorder = np.mean([p[2] for p in projects])
-                        ax.add_artist(Polygon(xys, ec="k", fc=Cube.pltcolors[self.stickers[i, j, k]], zorder=zorder))
+                        ax.add_artist(Polygon(xys, ec=self.plasticcolor, fc=self.facecolors[self.stickers[i, j, k]], zorder=zorder))
                 x0, y0, zorder = self._render_points([1.5 * Cube.normals[i], ], viewpoint)[0]
                 ax.text(x0 + shift[0], y0 + shift[1], f, color=Cube.labelcolor,
                         ha="center", va="center", rotation=20, alpha=1.0, zorder=zorder, fontsize=12 / (-zorder))
@@ -157,8 +161,8 @@ class Cube(object):
             cs = 1. / self.N
             for j in range(self.N):
                 for k in range(self.N):
-                    ax.add_artist(Rectangle((x0 + j * cs, y0 + k * cs), cs, cs, ec="k",
-                                            fc=Cube.pltcolors[self.stickers[i, j, k]], zorder=1.))
+                    ax.add_artist(Rectangle((x0 + j * cs, y0 + k * cs), cs, cs, ec=self.plasticcolor,
+                                            fc=self.facecolors[self.stickers[i, j, k]], zorder=1.))
             ax.text(x0 + 0.5, y0 + 0.5, f, color=Cube.labelcolor,
                     ha="center", va="center", rotation=20, alpha=1.0, fontsize=14, zorder=2.)
 
@@ -194,7 +198,7 @@ def edge_algo(cube):
 
 if __name__ == "__main__":
     np.random.seed(42)
-    c = Cube(4)
-    for m in range(20):
+    c = Cube(4, whiteplastic=False)
+    for m in range(32):
         c.render().savefig("test%02d.pdf" % m)
         c.randomize(1)
