@@ -40,7 +40,7 @@ class Cube(object):
                np.array([1., 0., 0.]), np.array([-1., 0., 0.]),
                np.array([0., 0., -1.]), np.array([0, 0., 1.])]
     colordict = {"w":0, "y":1, "b":2, "g":3, "o":4, "r":5}
-    pltpos = [(0., 1.), (0., -1.), (0., 0.), (2., 0.), (1., 0.), (-1., 0.)]
+    pltpos = [(0., 1.05), (0., -1.05), (0., 0.), (2.10, 0.), (1.05, 0.), (-1.05, 0.)]
     labelcolor = (0.75, 0.25, 1.00)
 
     def __init__(self, N, whiteplastic=False):
@@ -198,7 +198,8 @@ def edge_algo(cube):
 
 if __name__ == "__main__":
     np.random.seed(42)
-    c = Cube(4, whiteplastic=False)
+    c = Cube(3, whiteplastic=True)
     for m in range(32):
         c.render().savefig("test%02d.pdf" % m)
+        c.render().savefig("test%02d.png" % m, dpi=434 / c.N)
         c.randomize(1)
