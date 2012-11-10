@@ -27,11 +27,19 @@ to-do
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+from matplotlib.patches import Polygon
 
 class Cube(object):
 
     facedict = {"U":0, "D":1, "F":2, "B":3, "R":4, "L":5}
     dictface = dict([(v, k) for k, v in facedict.items()])
+    normals = [np.array([0., 1., 0.]), np.array([0., -1., 0.]),
+               np.array([0., 0., 1.]), np.array([0., 0., -1.]),
+               np.array([1., 0., 0.]), np.array([-1., 0., 0.])]
+    # this xdirs has to be synchronized with the self.move() function
+    xdirs = [np.array([1., 0., 0.]), np.array([1., 0., 0.]),
+               np.array([1., 0., 0.]), np.array([-1., 0., 0.]),
+               np.array([0., 0., -1.]), np.array([0, 0., 1.])]
     colordict = {"w":0, "y":1, "b":2, "g":3, "o":4, "r":5}
     pltpos = [(0., 1.), (0., -1.), (0., 0.), (2., 0.), (1., 0.), (-1., 0.)]
     pltcolors = [(1.00, 1.00, 1.00), (0.75, 0.75, 0.00), (0.00, 0.00, 0.75),
@@ -95,27 +103,69 @@ class Cube(object):
         self.stickers[a] = foo
         return None
 
-    def randomize(self):
-        for t in range(10 * self.N * self.N): # made up
+    def randomize(self, number):
+        for t in range(number):
             f = Cube.dictface[np.random.randint(6)]
             l = np.random.randint(self.N)
             self.move(f, l, 1)
         return None
 
-    def render(self):
-        fig = plt.figure(figsize=(4. * self.N / 5., 3. * self.N / 5.))
-        ax = fig.add_axes((0, 0, 1, 1), frameon=False,
-                          xticks=[], yticks=[])
+    def _render_points(self, points, viewpoint):
+        """
+        clunky projection from 3-d to 2-d
+        """
+        v2 = np.dot(viewpoint, viewpoint)
+        zdir = viewpoint / np.sqrt(v2)
+        xdir = np.cross(np.array([0., 1., 0.]), zdir)
+        xdir /= np.sqrt(np.dot(xdir, xdir))
+        ydir = np.cross(zdir, xdir)
+        result = []
+        for p in points:
+            dpoint = p - viewpoint
+            dproj = dpoint * v2 / np.dot(dpoint, -1. * viewpoint)
+            result += [np.array([np.dot(xdir, dproj),
+                                 np.dot(ydir, dproj),
+                                 np.dot(zdir, dpoint)])]
+        return result
+
+    def render_views(self, ax):
+        for f, i in Cube.facedict.items():
+            xdir = Cube.xdirs[i]
+            zdir = Cube.normals[i]
+            ydir = np.cross(zdir, xdir) # insanity!
+            csz = 2. / self.N
+            for viewpoint, shift in [(np.array([-2., -2., 5.]), np.array([-4., 4.])),
+                                     (np.array([2., 2., 5.]), np.array([0., 4.])),
+                                     (np.array([5., 2., -2.]), np.array([4., 4.]))]:
+                for j in range(self.N):
+                    for k in range(self.N):
+                        corners = [zdir - xdir + (j + 0) * csz * xdir - ydir + (k + 0) * csz * ydir,
+                                   zdir - xdir + (j + 1) * csz * xdir - ydir + (k + 0) * csz * ydir,
+                                   zdir - xdir + (j + 1) * csz * xdir - ydir + (k + 1) * csz * ydir,
+                                   zdir - xdir + (j + 0) * csz * xdir - ydir + (k + 1) * csz * ydir]
+                        projects = self._render_points(corners, viewpoint)
+                        xys = [p[0:2] + shift for p in projects]
+                        zorder = np.mean([p[2] for p in projects])
+                        ax.add_artist(Polygon(xys, ec="k", fc=Cube.pltcolors[self.stickers[i, j, k]], alpha=0.85, zorder=zorder))
+
+    def render_flat(self, ax):
         for f, i in Cube.facedict.items():
             x0, y0 = Cube.pltpos[i]
             cs = 1. / self.N
             for j in range(self.N):
                 for k in range(self.N):
                     ax.add_artist(Rectangle((x0 + j * cs, y0 + k * cs), cs, cs, ec="k",
-                                            fc=Cube.pltcolors[self.stickers[i, j, k]], alpha=0.75))
+                                            fc=Cube.pltcolors[self.stickers[i, j, k]], alpha=0.85))
             ax.text(x0 + 0.5, y0 + 0.5, f, color="0.25", ha="center", va="center", rotation=20, alpha=0.5, fontsize=12)
-        ax.set_xlim(-1., 3.)
-        ax.set_ylim(-1., 2.)
+
+    def render(self):
+        fig = plt.figure(figsize=(12. * self.N / 5., 8. * self.N / 5.))
+        ax = fig.add_axes((0, 0, 1, 1), frameon=False,
+                          xticks=[], yticks=[])
+        self.render_views(ax)
+        self.render_flat(ax)
+        ax.set_xlim(-6., 6.)
+        ax.set_ylim(-2., 6.)
         return fig
 
 def edge_algo(cube):
@@ -139,25 +189,7 @@ def edge_algo(cube):
     return None
 
 if __name__ == "__main__":
-    c = Cube(5)
-    c.render().savefig("test.pdf")
-    c.move("U", 0, 2)
-    c.render().savefig("test1.pdf")
-    c.move("U", 1, 1)
-    c.render().savefig("test2.pdf")
-    c.move("F", 0, -1)
-    c.render().savefig("test3.pdf")
-    c.move("U", 0, -1)
-    c.render().savefig("test4.pdf")
-    c.move("L", 0, 1)
-    c.render().savefig("test5.pdf")
-    c.move("L", 0, -1)
-    c.render().savefig("test6.pdf")
-    c.randomize()
-    c.render().savefig("test7.pdf")
-    d = Cube(3)
-    edge_algo(d)
-    d.render().savefig("test8.pdf")
-    e = Cube(2)
-    e.randomize()
-    e.render().savefig("test9.pdf")
+    c = Cube(6)
+    for m in range(20):
+        c.render().savefig("test%02d.pdf" % m)
+        c.randomize(1)
