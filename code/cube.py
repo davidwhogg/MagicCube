@@ -19,7 +19,6 @@ to-do
 - Write "turn" function.
 - Write translations to other move languages.
 - Do multi-layer moves (like Rr2).
-- Make perspective views.
 - Figure out a physical "cubie" model to replace the "sticker" model.
 
 """
@@ -42,8 +41,9 @@ class Cube(object):
                np.array([0., 0., -1.]), np.array([0, 0., 1.])]
     colordict = {"w":0, "y":1, "b":2, "g":3, "o":4, "r":5}
     pltpos = [(0., 1.), (0., -1.), (0., 0.), (2., 0.), (1., 0.), (-1., 0.)]
-    pltcolors = [(1.00, 1.00, 1.00), (0.75, 0.75, 0.00), (0.00, 0.00, 0.75),
-                 (0.00, 0.75, 0.00), (1.00, 0.50, 0.00), (0.75, 0.00, 0.00)]
+    pltcolors = [(1.00, 1.00, 1.00), (0.75, 0.75, 0.00), (0.00, 0.00, 0.50),
+                 (0.00, 0.50, 0.00), (1.00, 0.50, 0.00), (0.75, 0.00, 0.00)]
+    labelcolor = (0.25, 0.25, 1.00)
 
     def __init__(self, N):
         self.N = N
@@ -112,7 +112,7 @@ class Cube(object):
 
     def _render_points(self, points, viewpoint):
         """
-        clunky projection from 3-d to 2-d
+        clunky projection from 3-d to 2-d, but also return a zorder variable
         """
         v2 = np.dot(viewpoint, viewpoint)
         zdir = viewpoint / np.sqrt(v2)
@@ -122,21 +122,21 @@ class Cube(object):
         result = []
         for p in points:
             dpoint = p - viewpoint
-            dproj = dpoint * v2 / np.dot(dpoint, -1. * viewpoint)
+            dproj = 0.5 * dpoint * v2 / np.dot(dpoint, -1. * viewpoint)
             result += [np.array([np.dot(xdir, dproj),
                                  np.dot(ydir, dproj),
-                                 np.dot(zdir, dpoint)])]
+                                 np.dot(zdir, dpoint / np.sqrt(v2))])]
         return result
 
     def render_views(self, ax):
-        for f, i in Cube.facedict.items():
-            xdir = Cube.xdirs[i]
-            zdir = Cube.normals[i]
-            ydir = np.cross(zdir, xdir) # insanity!
-            csz = 2. / self.N
-            for viewpoint, shift in [(np.array([-2., -2., 5.]), np.array([-4., 4.])),
-                                     (np.array([2., 2., 5.]), np.array([0., 4.])),
-                                     (np.array([5., 2., -2.]), np.array([4., 4.]))]:
+        csz = 2. / self.N
+        for viewpoint, shift in [(np.array([-3., -3., 6.]), np.array([-1.5, 3.])),
+                                 (np.array([3., 3., 6.]), np.array([0.5, 3.])),
+                                 (np.array([6., 3., -3.]), np.array([2.5, 3.]))]:
+            for f, i in Cube.facedict.items():
+                xdir = Cube.xdirs[i]
+                zdir = Cube.normals[i]
+                ydir = np.cross(zdir, xdir) # insanity: left-handed!
                 for j in range(self.N):
                     for k in range(self.N):
                         corners = [zdir - xdir + (j + 0) * csz * xdir - ydir + (k + 0) * csz * ydir,
@@ -146,7 +146,10 @@ class Cube(object):
                         projects = self._render_points(corners, viewpoint)
                         xys = [p[0:2] + shift for p in projects]
                         zorder = np.mean([p[2] for p in projects])
-                        ax.add_artist(Polygon(xys, ec="k", fc=Cube.pltcolors[self.stickers[i, j, k]], alpha=0.85, zorder=zorder))
+                        ax.add_artist(Polygon(xys, ec="k", fc=Cube.pltcolors[self.stickers[i, j, k]], zorder=zorder))
+                x0, y0, zorder = self._render_points([1.5 * Cube.normals[i], ], viewpoint)[0]
+                ax.text(x0 + shift[0], y0 + shift[1], f, color=Cube.labelcolor,
+                        ha="center", va="center", rotation=20, alpha=1.0, zorder=zorder, fontsize=12 / (-zorder))
 
     def render_flat(self, ax):
         for f, i in Cube.facedict.items():
@@ -155,17 +158,18 @@ class Cube(object):
             for j in range(self.N):
                 for k in range(self.N):
                     ax.add_artist(Rectangle((x0 + j * cs, y0 + k * cs), cs, cs, ec="k",
-                                            fc=Cube.pltcolors[self.stickers[i, j, k]], alpha=0.85))
-            ax.text(x0 + 0.5, y0 + 0.5, f, color="0.25", ha="center", va="center", rotation=20, alpha=0.5, fontsize=12)
+                                            fc=Cube.pltcolors[self.stickers[i, j, k]], zorder=1.))
+            ax.text(x0 + 0.5, y0 + 0.5, f, color=Cube.labelcolor,
+                    ha="center", va="center", rotation=20, alpha=1.0, fontsize=14, zorder=2.)
 
     def render(self):
-        fig = plt.figure(figsize=(12. * self.N / 5., 8. * self.N / 5.))
+        fig = plt.figure(figsize=(5.8 * self.N / 5., 5.2 * self.N / 5.))
         ax = fig.add_axes((0, 0, 1, 1), frameon=False,
                           xticks=[], yticks=[])
         self.render_views(ax)
         self.render_flat(ax)
-        ax.set_xlim(-6., 6.)
-        ax.set_ylim(-2., 6.)
+        ax.set_xlim(-2.4, 3.4)
+        ax.set_ylim(-1.2, 4.)
         return fig
 
 def edge_algo(cube):
@@ -189,7 +193,8 @@ def edge_algo(cube):
     return None
 
 if __name__ == "__main__":
-    c = Cube(6)
+    np.random.seed(42)
+    c = Cube(4)
     for m in range(20):
         c.render().savefig("test%02d.pdf" % m)
         c.randomize(1)
