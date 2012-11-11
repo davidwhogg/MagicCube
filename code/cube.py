@@ -268,16 +268,31 @@ def edge_algo(cube):
     cube.move("U", 0, 1)
     return None
 
+def swap_off_diagonal(cube, f, l1, l2):
+    cube.move(f, l1, 1)
+    cube.move(f, l2, 1)
+    cube.move("U", 0, -1)
+    cube.move(f, l2, -1)
+    cube.move("U", 0, 1)
+    cube.move(f, l1, -1)
+    cube.move("U", 0, -1)
+    cube.move(f, l2, 1)
+    cube.move("U", 0, 1)
+    cube.move(f, l2, -1)
+    return None
+
 if __name__ == "__main__":
     """
     Functional testing.
     """
     np.random.seed(17)
-    c = Cube(4, whiteplastic=True)
-    c.stickercolors[Cube.colordict["w"]] = (0., 0., 0.)
-    c.turn("F", 2)
-    c.turn("R", 1)
-    for m in range(32):
+    c = Cube(5, whiteplastic=True)
+    c.turn("U", 1)
+    c.move("U", 0, -1)
+    swap_off_diagonal(c, "R", 2, 1)
+    c.move("U", 0, 1)
+    swap_off_diagonal(c, "R", 3, 2)
+    for m in range(1):
         c.render().savefig("test%02d.pdf" % m)
         c.render().savefig("test%02d.png" % m, dpi=434 / c.N)
         c.randomize(1)
