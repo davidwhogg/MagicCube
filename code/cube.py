@@ -79,10 +79,12 @@ class Cube(object):
         self.N = N
         self.stickers = np.array([np.tile(i, (self.N, self.N)) for i in range(6)])
         self.stickercolors = ["w", "#ffcf00", "#00008f", "#009f0f", "#ff6f00", "#cf0000"]
+        self.stickeralpha = 1.0
         if whiteplastic:
             self.plasticcolor = "#dfdfdf"
         else:
             self.plasticcolor = "#1f1f1f"
+        self.fontsize = 14. * np.sqrt(self.N / 4.) # don't ask
         return None
 
     def turn(self, f, d):
@@ -165,8 +167,8 @@ class Cube(object):
         for t in range(number):
             f = self.dictface[np.random.randint(6)]
             l = np.random.randint(self.N)
-            t = 1 + np.random.randint(3)
-            self.move(f, l, t)
+            d = 1 + np.random.randint(3)
+            self.move(f, l, d)
         return None
 
     def _render_points(self, points, viewpoint):
@@ -194,9 +196,11 @@ class Cube(object):
         `render()` function.
         """
         csz = 2. / self.N
-        for viewpoint, shift in [(np.array([-3., -3., 6.]), np.array([-1.5, 3.])),
-                                 (np.array([3., 3., 6.]), np.array([0.5, 3.])),
-                                 (np.array([6., 3., -3.]), np.array([2.5, 3.]))]:
+        x2 = 8.
+        x1 = 0.5 * x2
+        for viewpoint, shift in [(np.array([-x1, -x1, x2]), np.array([-1.5, 3.])),
+                                 (np.array([x1, x1, x2]), np.array([0.5, 3.])),
+                                 (np.array([x2, x1, -x1]), np.array([2.5, 3.]))]:
             for f, i in self.facedict.items():
                 xdir = self.xdirs[i]
                 zdir = self.normals[i]
@@ -210,10 +214,11 @@ class Cube(object):
                         projects = self._render_points(corners, viewpoint)
                         xys = [p[0:2] + shift for p in projects]
                         zorder = np.mean([p[2] for p in projects])
-                        ax.add_artist(Polygon(xys, ec=self.plasticcolor, fc=self.stickercolors[self.stickers[i, j, k]], zorder=zorder))
+                        ax.add_artist(Polygon(xys, ec=self.plasticcolor, fc=self.stickercolors[self.stickers[i, j, k]],
+                                              alpha=self.stickeralpha, zorder=zorder))
                 x0, y0, zorder = self._render_points([1.5 * self.normals[i], ], viewpoint)[0]
                 ax.text(x0 + shift[0], y0 + shift[1], f, color=self.labelcolor,
-                        ha="center", va="center", rotation=20, zorder=zorder, fontsize=12 / (-zorder))
+                        ha="center", va="center", rotation=20, zorder=zorder, fontsize=self.fontsize / (-zorder))
         return None
 
     def render_flat(self, ax):
@@ -227,22 +232,32 @@ class Cube(object):
             for j in range(self.N):
                 for k in range(self.N):
                     ax.add_artist(Rectangle((x0 + j * cs, y0 + k * cs), cs, cs, ec=self.plasticcolor,
-                                            fc=self.stickercolors[self.stickers[i, j, k]], zorder=1.))
+                                            fc=self.stickercolors[self.stickers[i, j, k]], alpha=self.stickeralpha, zorder=1.))
             ax.text(x0 + 0.5, y0 + 0.5, f, color=self.labelcolor,
-                    ha="center", va="center", rotation=20, fontsize=14, zorder=2.)
+                    ha="center", va="center", rotation=20, fontsize=self.fontsize, zorder=2.)
 
-    def render(self):
+    def render(self, flat=True, views=True):
         """
         Visualize the cube in a standard layout, including a flat,
         unwrapped view and three perspective views.
         """
-        fig = plt.figure(figsize=(5.8 * self.N / 5., 5.2 * self.N / 5.))
+        assert flat or views
+        xlim = (-2.4, 3.4)
+        ylim = (-1.2, 4.)
+        if not flat:
+            ylim = (2., 4.)
+        if not views:
+            xlim = (-1.2, 3.2)
+            ylim = (-1.2, 2.2)
+        fig = plt.figure(figsize=((xlim[1] - xlim[0]) * self.N / 5., (ylim[1] - ylim[0]) * self.N / 5.))
         ax = fig.add_axes((0, 0, 1, 1), frameon=False,
                           xticks=[], yticks=[])
-        self.render_views(ax)
-        self.render_flat(ax)
-        ax.set_xlim(-2.4, 3.4)
-        ax.set_ylim(-1.2, 4.)
+        if views:
+            self.render_views(ax)
+        if flat:
+            self.render_flat(ax)
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
         return fig
 
 def adjacent_edge_flip(cube):
@@ -302,14 +317,13 @@ if __name__ == "__main__":
     Functional testing.
     """
     np.random.seed(17)
-    c = Cube(7, whiteplastic=False)
+    c = Cube(6, whiteplastic=False)
     c.turn("U", 1)
     c.move("U", 0, -1)
     swap_off_diagonal(c, "R", 2, 1)
     c.move("U", 0, 1)
     swap_off_diagonal(c, "R", 3, 2)
-    checkerboard(c)
+#    checkerboard(c)
     for m in range(32):
-        c.render().savefig("test%02d.pdf" % m)
-        c.render().savefig("test%02d.png" % m, dpi=434 / c.N)
-        c.randomize(1)
+        c.render(flat=False).savefig("test%02d.pdf" % m)
+        c.randomize(2)
