@@ -41,6 +41,7 @@ conventions
 to-do
 -----
 - Write translations to other move languages, so you can take a string of moves from some website (eg, <http://www.speedcubing.com/chris/3-permutations.html>) and execute it.
+- Keep track of sticker ID numbers and orientations to show that seemingly unchanged parts of big cubes have had cubie swaps or stickers rotated.
 - Figure out a physical "cubie" model to replace the "sticker" model.
 
 """
