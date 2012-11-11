@@ -79,7 +79,8 @@ class Cube(object):
         self.N = N
         self.stickers = np.array([np.tile(i, (self.N, self.N)) for i in range(6)])
         self.stickercolors = ["w", "#ffcf00", "#00008f", "#009f0f", "#ff6f00", "#cf0000"]
-        self.stickeralpha = 1.0
+        self.stickerthickness = 0.001 # sticker thickness in units of total cube size
+        self.stickerwidth = 0.9 # sticker size relative to cubie size (must be < 1)
         if whiteplastic:
             self.plasticcolor = "#dfdfdf"
         else:
@@ -193,7 +194,10 @@ class Cube(object):
     def render_views(self, ax):
         """
         Make three projected 3-dimensional views of the cube for the
-        `render()` function.
+        `render()` function.  Because of zorder / occulting issues,
+        this code is very brittle; it will not work for all viewpoints
+        (the `np.dot(zdir, viewpoint)` test is not general; the corect
+        test involves the "handedness" of the projected polygon).
         """
         csz = 2. / self.N
         x2 = 8.
@@ -202,29 +206,48 @@ class Cube(object):
                                  (np.array([x1, x1, x2]), np.array([0.5, 3.])),
                                  (np.array([x2, x1, -x1]), np.array([2.5, 3.]))]:
             for f, i in self.facedict.items():
-                xdir = self.xdirs[i]
                 zdir = self.normals[i]
+                if np.dot(zdir, viewpoint) < 0:
+                    continue
+                xdir = self.xdirs[i]
                 ydir = np.cross(zdir, xdir) # insanity: left-handed!
+                psc = 1. - 2. * self.stickerthickness
+                corners = [psc * zdir - psc * xdir - psc * ydir,
+                           psc * zdir + psc * xdir - psc * ydir,
+                           psc * zdir + psc * xdir + psc * ydir,
+                           psc * zdir - psc * xdir + psc * ydir]
+                projects = self._render_points(corners, viewpoint)
+                xys = [p[0:2] + shift for p in projects]
+                zorder = np.mean([p[2] for p in projects])
+                ax.add_artist(Polygon(xys, ec="none", fc=self.plasticcolor))
                 for j in range(self.N):
                     for k in range(self.N):
-                        corners = [zdir - xdir + (j + 0) * csz * xdir - ydir + (k + 0) * csz * ydir,
-                                   zdir - xdir + (j + 1) * csz * xdir - ydir + (k + 0) * csz * ydir,
-                                   zdir - xdir + (j + 1) * csz * xdir - ydir + (k + 1) * csz * ydir,
-                                   zdir - xdir + (j + 0) * csz * xdir - ydir + (k + 1) * csz * ydir]
+                        corners = self._stickerpolygon(xdir, ydir, zdir, csz, j, k)
                         projects = self._render_points(corners, viewpoint)
                         xys = [p[0:2] + shift for p in projects]
-                        zorder = np.mean([p[2] for p in projects])
-                        ax.add_artist(Polygon(xys, ec=self.plasticcolor, fc=self.stickercolors[self.stickers[i, j, k]],
-                                              alpha=self.stickeralpha, zorder=zorder))
+                        ax.add_artist(Polygon(xys, ec="none", fc=self.stickercolors[self.stickers[i, j, k]]))
                 x0, y0, zorder = self._render_points([1.5 * self.normals[i], ], viewpoint)[0]
                 ax.text(x0 + shift[0], y0 + shift[1], f, color=self.labelcolor,
-                        ha="center", va="center", rotation=20, zorder=zorder, fontsize=self.fontsize / (-zorder))
+                        ha="center", va="center", rotation=20, fontsize=self.fontsize / (-zorder))
         return None
+
+    def _stickerpolygon(self, xdir, ydir, zdir, csz, j, k):
+        small = 0.5 * (1. - self.stickerwidth)
+        large = 1. - small
+        return [zdir - xdir + (j + small) * csz * xdir - ydir + (k + small + small) * csz * ydir,
+                zdir - xdir + (j + small + small) * csz * xdir - ydir + (k + small) * csz * ydir,
+                zdir - xdir + (j + large - small) * csz * xdir - ydir + (k + small) * csz * ydir,
+                zdir - xdir + (j + large) * csz * xdir - ydir + (k + small + small) * csz * ydir,
+                zdir - xdir + (j + large) * csz * xdir - ydir + (k + large - small) * csz * ydir,
+                zdir - xdir + (j + large - small) * csz * xdir - ydir + (k + large) * csz * ydir,
+                zdir - xdir + (j + small + small) * csz * xdir - ydir + (k + large) * csz * ydir,
+                zdir - xdir + (j + small) * csz * xdir - ydir + (k + large - small) * csz * ydir]
 
     def render_flat(self, ax):
         """
         Make an unwrapped, flat view of the cube for the `render()`
-        function.
+        function.  This is a map, not a view really.  It does not
+        properly render the plastic and stickers.
         """
         for f, i in self.facedict.items():
             x0, y0 = self.pltpos[i]
@@ -232,9 +255,10 @@ class Cube(object):
             for j in range(self.N):
                 for k in range(self.N):
                     ax.add_artist(Rectangle((x0 + j * cs, y0 + k * cs), cs, cs, ec=self.plasticcolor,
-                                            fc=self.stickercolors[self.stickers[i, j, k]], alpha=self.stickeralpha, zorder=1.))
+                                            fc=self.stickercolors[self.stickers[i, j, k]], alpha=self.stickeralpha))
             ax.text(x0 + 0.5, y0 + 0.5, f, color=self.labelcolor,
-                    ha="center", va="center", rotation=20, fontsize=self.fontsize, zorder=2.)
+                    ha="center", va="center", rotation=20, fontsize=self.fontsize)
+        return None
 
     def render(self, flat=True, views=True):
         """
@@ -317,13 +341,13 @@ if __name__ == "__main__":
     Functional testing.
     """
     np.random.seed(17)
-    c = Cube(6, whiteplastic=False)
+    c = Cube(3, whiteplastic=False)
     c.turn("U", 1)
     c.move("U", 0, -1)
-    swap_off_diagonal(c, "R", 2, 1)
+#    swap_off_diagonal(c, "R", 2, 1)
     c.move("U", 0, 1)
-    swap_off_diagonal(c, "R", 3, 2)
+#    swap_off_diagonal(c, "R", 3, 2)
 #    checkerboard(c)
     for m in range(32):
         c.render(flat=False).savefig("test%02d.pdf" % m)
-        c.randomize(2)
+        c.randomize(1)
