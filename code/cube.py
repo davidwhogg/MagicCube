@@ -26,7 +26,7 @@ usage
 - randomize a cube with `c.randomize(32)` where `32` is the number of random moves to make.
 - make cube moves with `c.move()` and turn the whole cube with `c.turn()`.
 - make figures with `c.render().savefig(fn)` where `fn` is the filename.
-- change sticker colors with, eg, `c.stickercolors[Cube.colordict["w"]] = (0., 0., 0.)`.
+- change sticker colors with, eg, `c.stickercolors[c.colordict["w"]] = "k"`.
 
 conventions
 -----------
@@ -70,7 +70,7 @@ class Cube(object):
                np.array([0., 0., -1.]), np.array([0, 0., 1.])]
     colordict = {"w":0, "y":1, "b":2, "g":3, "o":4, "r":5}
     pltpos = [(0., 1.05), (0., -1.05), (0., 0.), (2.10, 0.), (1.05, 0.), (-1.05, 0.)]
-    labelcolor = (0.75, 0.25, 1.00)
+    labelcolor = "#df8fff"
 
     def __init__(self, N, whiteplastic=False):
         """
@@ -78,12 +78,11 @@ class Cube(object):
         """
         self.N = N
         self.stickers = np.array([np.tile(i, (self.N, self.N)) for i in range(6)])
-        self.stickercolors = [(1.00, 1.00, 1.00), (0.75, 0.75, 0.00), (0.00, 0.00, 0.50),
-                              (0.00, 0.50, 0.00), (1.00, 0.50, 0.00), (0.75, 0.00, 0.00)]
+        self.stickercolors = ["w", "#ffcf00", "#00008f", "#009f0f", "#ff6f00", "#cf0000"]
         if whiteplastic:
-            self.plasticcolor = (0.85, 0.85, 0.85)
+            self.plasticcolor = "#dfdfdf"
         else:
-            self.plasticcolor = (0.15, 0.15, 0.15)
+            self.plasticcolor = "#1f1f1f"
         return None
 
     def turn(self, f, d):
@@ -104,38 +103,38 @@ class Cube(object):
         into the cube.  Use `d=3` or `d=-1` for counter-clockwise
         moves, and `d=2` for a 180-degree move..
         """
-        i = Cube.facedict[f]
+        i = self.facedict[f]
         l2 = self.N - 1 - l
         assert l < self.N
         ds = range((d + 4) % 4)
         if f == "U":
             f2 = "D"
-            i2 = Cube.facedict[f2]
+            i2 = self.facedict[f2]
             for d in ds:
-                self._rotate([(Cube.facedict["F"], range(self.N), l2),
-                              (Cube.facedict["R"], range(self.N), l2),
-                              (Cube.facedict["B"], range(self.N), l2),
-                              (Cube.facedict["L"], range(self.N), l2)])
+                self._rotate([(self.facedict["F"], range(self.N), l2),
+                              (self.facedict["R"], range(self.N), l2),
+                              (self.facedict["B"], range(self.N), l2),
+                              (self.facedict["L"], range(self.N), l2)])
         if f == "D":
             return self.move("U", l2, -d)
         if f == "F":
             f2 = "B"
-            i2 = Cube.facedict[f2]
+            i2 = self.facedict[f2]
             for d in ds:
-                self._rotate([(Cube.facedict["U"], range(self.N), l),
-                              (Cube.facedict["L"], l2, range(self.N)),
-                              (Cube.facedict["D"], range(self.N)[::-1], l2),
-                              (Cube.facedict["R"], l, range(self.N)[::-1])])
+                self._rotate([(self.facedict["U"], range(self.N), l),
+                              (self.facedict["L"], l2, range(self.N)),
+                              (self.facedict["D"], range(self.N)[::-1], l2),
+                              (self.facedict["R"], l, range(self.N)[::-1])])
         if f == "B":
             return self.move("F", l2, -d)
         if f == "R":
             f2 = "L"
-            i2 = Cube.facedict[f2]
+            i2 = self.facedict[f2]
             for d in ds:
-                self._rotate([(Cube.facedict["U"], l2, range(self.N)),
-                              (Cube.facedict["F"], l2, range(self.N)),
-                              (Cube.facedict["D"], l2, range(self.N)),
-                              (Cube.facedict["B"], l, range(self.N)[::-1])])
+                self._rotate([(self.facedict["U"], l2, range(self.N)),
+                              (self.facedict["F"], l2, range(self.N)),
+                              (self.facedict["D"], l2, range(self.N)),
+                              (self.facedict["B"], l, range(self.N)[::-1])])
         if f == "L":
             return self.move("R", l2, -d)
         for d in ds:
@@ -164,7 +163,7 @@ class Cube(object):
         Make `number` randomly chosen moves to scramble the cube.
         """
         for t in range(number):
-            f = Cube.dictface[np.random.randint(6)]
+            f = self.dictface[np.random.randint(6)]
             l = np.random.randint(self.N)
             t = 1 + np.random.randint(3)
             self.move(f, l, t)
@@ -198,9 +197,9 @@ class Cube(object):
         for viewpoint, shift in [(np.array([-3., -3., 6.]), np.array([-1.5, 3.])),
                                  (np.array([3., 3., 6.]), np.array([0.5, 3.])),
                                  (np.array([6., 3., -3.]), np.array([2.5, 3.]))]:
-            for f, i in Cube.facedict.items():
-                xdir = Cube.xdirs[i]
-                zdir = Cube.normals[i]
+            for f, i in self.facedict.items():
+                xdir = self.xdirs[i]
+                zdir = self.normals[i]
                 ydir = np.cross(zdir, xdir) # insanity: left-handed!
                 for j in range(self.N):
                     for k in range(self.N):
@@ -212,9 +211,9 @@ class Cube(object):
                         xys = [p[0:2] + shift for p in projects]
                         zorder = np.mean([p[2] for p in projects])
                         ax.add_artist(Polygon(xys, ec=self.plasticcolor, fc=self.stickercolors[self.stickers[i, j, k]], zorder=zorder))
-                x0, y0, zorder = self._render_points([1.5 * Cube.normals[i], ], viewpoint)[0]
-                ax.text(x0 + shift[0], y0 + shift[1], f, color=Cube.labelcolor,
-                        ha="center", va="center", rotation=20, alpha=1.0, zorder=zorder, fontsize=12 / (-zorder))
+                x0, y0, zorder = self._render_points([1.5 * self.normals[i], ], viewpoint)[0]
+                ax.text(x0 + shift[0], y0 + shift[1], f, color=self.labelcolor,
+                        ha="center", va="center", rotation=20, zorder=zorder, fontsize=12 / (-zorder))
         return None
 
     def render_flat(self, ax):
@@ -222,15 +221,15 @@ class Cube(object):
         Make an unwrapped, flat view of the cube for the `render()`
         function.
         """
-        for f, i in Cube.facedict.items():
-            x0, y0 = Cube.pltpos[i]
+        for f, i in self.facedict.items():
+            x0, y0 = self.pltpos[i]
             cs = 1. / self.N
             for j in range(self.N):
                 for k in range(self.N):
                     ax.add_artist(Rectangle((x0 + j * cs, y0 + k * cs), cs, cs, ec=self.plasticcolor,
                                             fc=self.stickercolors[self.stickers[i, j, k]], zorder=1.))
-            ax.text(x0 + 0.5, y0 + 0.5, f, color=Cube.labelcolor,
-                    ha="center", va="center", rotation=20, alpha=1.0, fontsize=14, zorder=2.)
+            ax.text(x0 + 0.5, y0 + 0.5, f, color=self.labelcolor,
+                    ha="center", va="center", rotation=20, fontsize=14, zorder=2.)
 
     def render(self):
         """
@@ -246,7 +245,7 @@ class Cube(object):
         ax.set_ylim(-1.2, 4.)
         return fig
 
-def edge_algo(cube):
+def adjacent_edge_flip(cube):
     """
     Do a standard edge-flipping algorithm.  Used for testing.
     """
@@ -270,6 +269,9 @@ def edge_algo(cube):
     return None
 
 def swap_off_diagonal(cube, f, l1, l2):
+    """
+    A big-cube move that swaps three cubies (I think) but looks like two.
+    """
     cube.move(f, l1, 1)
     cube.move(f, l2, 1)
     cube.move("U", 0, -1)
@@ -282,18 +284,28 @@ def swap_off_diagonal(cube, f, l1, l2):
     cube.move(f, l2, -1)
     return None
 
+def checkerboard(cube):
+    """
+    Dumbness.
+    """
+    for f in ["U", "F", "R"]:
+        for l in range(cube.N)[::2]:
+            cube.move(f, l, 2)
+    return None
+
 if __name__ == "__main__":
     """
     Functional testing.
     """
     np.random.seed(17)
-    c = Cube(5, whiteplastic=True)
+    c = Cube(5, whiteplastic=False)
     c.turn("U", 1)
     c.move("U", 0, -1)
     swap_off_diagonal(c, "R", 2, 1)
     c.move("U", 0, 1)
     swap_off_diagonal(c, "R", 3, 2)
-    for m in range(1):
+    checkerboard(c)
+    for m in range(32):
         c.render().savefig("test%02d.pdf" % m)
         c.render().savefig("test%02d.png" % m, dpi=434 / c.N)
         c.randomize(1)
