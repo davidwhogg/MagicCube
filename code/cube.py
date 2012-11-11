@@ -288,9 +288,13 @@ def checkerboard(cube):
     """
     Dumbness.
     """
+    ls = range(cube.N)[::2]
     for f in ["U", "F", "R"]:
-        for l in range(cube.N)[::2]:
+        for l in ls:
             cube.move(f, l, 2)
+    if cube.N % 2 == 0:
+        for l in ls:
+            cube.move("F", l, 2)
     return None
 
 if __name__ == "__main__":
@@ -298,7 +302,7 @@ if __name__ == "__main__":
     Functional testing.
     """
     np.random.seed(17)
-    c = Cube(5, whiteplastic=False)
+    c = Cube(7, whiteplastic=False)
     c.turn("U", 1)
     c.move("U", 0, -1)
     swap_off_diagonal(c, "R", 2, 1)
