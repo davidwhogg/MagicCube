@@ -70,7 +70,7 @@ class Cube(object):
                np.array([0., 0., -1.]), np.array([0, 0., 1.])]
     colordict = {"w":0, "y":1, "b":2, "g":3, "o":4, "r":5}
     pltpos = [(0., 1.05), (0., -1.05), (0., 0.), (2.10, 0.), (1.05, 0.), (-1.05, 0.)]
-    labelcolor = "#df8fff"
+    labelcolor = "#7f00ff"
 
     def __init__(self, N, whiteplastic=False):
         """
@@ -85,7 +85,7 @@ class Cube(object):
             self.plasticcolor = "#dfdfdf"
         else:
             self.plasticcolor = "#1f1f1f"
-        self.fontsize = 14. * np.sqrt(self.N / 4.) # don't ask
+        self.fontsize = 12. * (self.N / 5.)
         return None
 
     def turn(self, f, d):
@@ -255,7 +255,7 @@ class Cube(object):
             for j in range(self.N):
                 for k in range(self.N):
                     ax.add_artist(Rectangle((x0 + j * cs, y0 + k * cs), cs, cs, ec=self.plasticcolor,
-                                            fc=self.stickercolors[self.stickers[i, j, k]], alpha=self.stickeralpha))
+                                            fc=self.stickercolors[self.stickers[i, j, k]]))
             ax.text(x0 + 0.5, y0 + 0.5, f, color=self.labelcolor,
                     ha="center", va="center", rotation=20, fontsize=self.fontsize)
         return None
@@ -340,14 +340,14 @@ if __name__ == "__main__":
     """
     Functional testing.
     """
-    np.random.seed(17)
-    c = Cube(3, whiteplastic=False)
-    c.turn("U", 1)
-    c.move("U", 0, -1)
+    np.random.seed(42)
+    c = Cube(6, whiteplastic=False)
+#    c.turn("U", 1)
+#    c.move("U", 0, -1)
 #    swap_off_diagonal(c, "R", 2, 1)
-    c.move("U", 0, 1)
+#    c.move("U", 0, 1)
 #    swap_off_diagonal(c, "R", 3, 2)
 #    checkerboard(c)
     for m in range(32):
-        c.render(flat=False).savefig("test%02d.pdf" % m)
+        c.render(flat=False).savefig("test%02d.png" % m, dpi=865 / c.N)
         c.randomize(1)
