@@ -3,6 +3,10 @@ Magic Cube
 
 It had to happen someday.  Somebody stop me!
 
+.. image:: http://4.bp.blogspot.com/-iruqaXDstKk/UKBejowDVkI/AAAAAAAAZkM/c2tir0qcexQ/s400/test04.png
+   :alt: cube views
+   :align: left
+
 Author
 ------
 
