@@ -102,22 +102,21 @@ class CubeAxes(Axes):
     """Axes to show 3D cube
 
     The cube orientation is represented by a quaternion.
-    The cube has side-length 2, and the observer is a distance R away
+    The cube has side-length 2, and the observer is a distance zloc away
     along the z-axis.
     """
-    face = np.array([[1, 1], [1, -1], [-1, -1],
-                     [-1, 1], [1, 1], [0, 0]])
-    faces =  np.array([np.hstack([face[:, :i],
-                                  np.ones((6, 1)),
-                                  face[:, i:]]) for i in range(3)] +
-                      [np.hstack([face[:, :i],
-                                  -np.ones((6, 1)),
-                                  face[:, i:]]) for i in range(3)])
+    face = np.array([[1, 1], [1, -1], [-1, -1], [-1, 1], [1, 1]])
+    faces = np.array([np.hstack([face[:, :i],
+                                 np.ones((5, 1)),
+                                 face[:, i:]]) for i in range(3)] +
+                     [np.hstack([face[:, :i],
+                                 -np.ones((5, 1)),
+                                 face[:, i:]]) for i in range(3)])
     stickercolors = ["#ffffff", "#00008f", "#ff6f00",
                      "#ffcf00", "#009f0f", "#cf0000"]
 
     def __init__(self, *args, **kwargs):
-        self.start_rot = Quaternion.from_v_theta((1, -1, 0), np.pi / 6)
+        self.start_rot = Quaternion.from_v_theta((1, -1, 0), -np.pi / 6)
         self.current_rot = self.start_rot
 
         self.start_zloc = 10.
@@ -136,7 +135,7 @@ class CubeAxes(Axes):
         self.figure.canvas.mpl_connect('button_release_event',
                                        self._deactivate_rotation)
         self.figure.canvas.mpl_connect('motion_notify_event',
-                                       self._on_motion)
+                                       self._mouse_motion)
         self.figure.canvas.mpl_connect('key_press_event',
                                        self._key_press)
 
@@ -177,33 +176,33 @@ class CubeAxes(Axes):
         self.current_zloc = zloc
 
         if self._cube_poly is None:
-            self._cube_poly = [plt.Polygon(self.faces[i, :5, :2],
-                                           facecolor=self.stickercolors[i])
+            self._cube_poly = [plt.Polygon(self.faces[i, :, :2],
+                                           facecolor=self.stickercolors[i],
+                                           alpha=0.9)
                                for i in range(6)]
             [self.add_patch(self._cube_poly[i]) for i in range(6)]
 
         faces = self.project_points(self.faces, rot, zloc)
-        zorder = np.argsort(np.argsort(faces[:, 5, 2]))
+        zorder = np.argsort(np.argsort(faces[:, :, 2].sum(1)))
 
         [self._cube_poly[i].set_zorder(10 * zorder[i]) for i in range(6)]
-        [self._cube_poly[i].set_xy(faces[i, :5, :2]) for i in range(6)]
+        [self._cube_poly[i].set_xy(faces[i, :, :2]) for i in range(6)]
 
         self.figure.canvas.draw()
 
     def _key_press(self, event):
         if event.key == 'right':
             self.current_rot = (self.current_rot
-                                * Quaternion.from_v_theta((0, 1, 0), -0.05))
+                                * Quaternion.from_v_theta((0, 0, 1), 0.01))
         elif event.key == 'left':
             self.current_rot = (self.current_rot
-                                * Quaternion.from_v_theta((0, 1, 0), 0.05))
+                                * Quaternion.from_v_theta((0, 0, 1), -0.01))
         elif event.key == 'up':
             self.current_rot = (self.current_rot
-                                * Quaternion.from_v_theta((1, 0, 0), 0.05))
+                                * Quaternion.from_v_theta((1, 0, 0), 0.01))
         elif event.key == 'down':
             self.current_rot = (self.current_rot
-                                * Quaternion.from_v_theta((1, 0, 0), -0.05))
-
+                                * Quaternion.from_v_theta((1, 0, 0), -0.01))
         self.draw_cube()
 
     def _activate_rotation(self, event):
@@ -216,7 +215,7 @@ class CubeAxes(Axes):
             self._active = False
             self._xy = None
 
-    def _on_motion(self, event):
+    def _mouse_motion(self, event):
         if self._active:
             dx = event.x - self._xy[0]
             dy = event.y - self._xy[1]
@@ -231,8 +230,9 @@ class CubeAxes(Axes):
             self.draw_cube()
             
 
-fig = plt.figure()
-ax = CubeAxes(fig, [0, 0, 1, 1])
-fig.add_axes(ax)
-ax.draw_cube()
-plt.show()
+if __name__ == '__main__':
+    fig = plt.figure()
+    ax = CubeAxes(fig, [0, 0, 1, 1])
+    fig.add_axes(ax)
+    ax.draw_cube()
+    plt.show()
