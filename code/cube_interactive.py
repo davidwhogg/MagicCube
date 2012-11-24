@@ -1,10 +1,24 @@
+"""
+A Simple Interactive Cube
+-------------------------
+This script plots a multi-color cube in three dimensions with perspective,
+and allows the cube to be manipulated using either the mouse or the arrow
+keys.
+
+The rotations are based on quaternions: unfortunately there is no quaternion
+algebra built-in to numpy or scipy, so we create a basic quaternion class to
+accomplish this.
+
+The cube is rendered using the zorder argument of any matplotlib object.  By
+judiciously setting the zorder depending on the orientation, we can make the
+cube appear to be solid.
+"""
+
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.collections import PolyCollection
 import matplotlib.pyplot as plt
 
-#------------------------------------------------------------
-# Some simple quaternion operations
 
 class Quaternion:
     """Quaternion Rotation:
@@ -13,6 +27,21 @@ class Quaternion:
     """
     @classmethod
     def from_v_theta(cls, v, theta):
+        """
+        Construct quaternions from unit vectors v and rotation angles theta
+
+        Parameters
+        ----------
+        v : array_like
+            array of vectors, last dimension 3. Vectors will be normalized.
+        theta : array_like
+            array of rotation angles in radians, shape = v.shape[:-1].
+
+        Returns
+        -------
+        q : quaternion object
+            quaternion representing the rotations
+        """
         theta = np.asarray(theta)
         v = np.asarray(v)
         s = np.sin(0.5 * theta)
@@ -31,13 +60,12 @@ class Quaternion:
     def __init__(self, x):
         self.x = np.asarray(x, dtype=float)
 
-    def __add__(self, other):
-        return self.__class__(self.x + other.x)
-
     def __repr__(self):
-        return self.x.__repr__()
+        return "Quaternion:\n" + self.x.__repr__()
 
     def __mul__(self, other):
+        # multiplication of two quaternions.
+        # we don't implement multiplication by a scalar
         sxr = self.x.reshape(self.x.shape[:-1] + (4, 1))
         oxr = other.x.reshape(other.x.shape[:-1] + (1, 4))
 
@@ -122,22 +150,42 @@ class CubeAxes(Axes):
         self.start_zloc = 10.
         self.current_zloc = 10.
 
+        # Define movement for up/down arrows or up/down mouse movement
+        self._ax_UD = (1, 0, 0)
+        self._step_UD = 0.01
+
+        # Define movement for left/right arrows or left/right mouse movement
+        self._ax_LR = (0, -1, 0)
+        self._step_LR = 0.01
+
+        # Internal variables.  These store states and data
         self._active = False
         self._xy = None
         self._cube_poly = None
 
+        # initialize the axes.  We'll set some keywords by default
         kwargs.update(dict(aspect='equal', xlim=(-1.5, 1.5), ylim=(-1.5, 1.5),
                            frameon=False, xticks=[], yticks=[]))
         super(CubeAxes, self).__init__(*args, **kwargs)
 
+        # connect some GUI events
         self.figure.canvas.mpl_connect('button_press_event',
-                                       self._activate_rotation)
+                                       self._mouse_press)
         self.figure.canvas.mpl_connect('button_release_event',
-                                       self._deactivate_rotation)
+                                       self._mouse_release)
         self.figure.canvas.mpl_connect('motion_notify_event',
                                        self._mouse_motion)
         self.figure.canvas.mpl_connect('key_press_event',
                                        self._key_press)
+        self.figure.canvas.mpl_connect('key_release_event',
+                                       self._key_release)
+
+        self.draw_cube()
+
+        self.figure.text(0.05, 0.05, ("Drag Mouse or use arrow keys to change "
+                                      "perspective.\n"
+                                      "hold shift to rotate around z-axis"),
+                         ha='left', va='bottom')
 
     @staticmethod
     def project_points(pts, rot, zloc):
@@ -167,6 +215,19 @@ class CubeAxes(Axes):
         return np.asarray(result).reshape(pts.shape)
 
     def draw_cube(self, rot=None, zloc=None):
+        """Draw a cube on the axes.
+
+        The first time this is called, it will create a set of polygons
+        representing the cube faces.  On initial calls, it will update
+        these polygon faces with a given rotation and observer location.
+
+        Parameters
+        ----------
+        rot : Quaternion object
+            The quaternion representing the rotation
+        zloc : float
+            The location of the observer on the z-axis (adjusts perspective)
+        """
         if rot is None:
             rot = self.current_rot
         if zloc is None:
@@ -191,42 +252,58 @@ class CubeAxes(Axes):
         self.figure.canvas.draw()
 
     def _key_press(self, event):
-        if event.key == 'right':
+        """Handler for key press events"""
+        if event.key == 'shift':
+            self._ax_LR = (0, 0, 1)
+            self._shift_on = True
+
+        elif event.key == 'right':
             self.current_rot = (self.current_rot
-                                * Quaternion.from_v_theta((0, 0, 1), 0.01))
+                                    * Quaternion.from_v_theta(self._ax_LR,
+                                                              self._step_LR))
         elif event.key == 'left':
             self.current_rot = (self.current_rot
-                                * Quaternion.from_v_theta((0, 0, 1), -0.01))
+                                * Quaternion.from_v_theta(self._ax_LR,
+                                                          -self._step_LR))
         elif event.key == 'up':
             self.current_rot = (self.current_rot
-                                * Quaternion.from_v_theta((1, 0, 0), 0.01))
+                                * Quaternion.from_v_theta(self._ax_UD,
+                                                          self._step_UD))
         elif event.key == 'down':
             self.current_rot = (self.current_rot
-                                * Quaternion.from_v_theta((1, 0, 0), -0.01))
+                                * Quaternion.from_v_theta(self._ax_UD,
+                                                          -self._step_UD))
         self.draw_cube()
 
-    def _activate_rotation(self, event):
+    def _key_release(self, event):
+        """Handler for key release event"""
+        if event.key == 'shift':
+            self._ax_LR = (0, -1, 0)
+
+    def _mouse_press(self, event):
+        """Handler for mouse button press"""
         if event.button == 1:
             self._active = True
             self._xy = (event.x, event.y)
 
-    def _deactivate_rotation(self, event):
+    def _mouse_release(self, event):
+        """Handler for mouse button release"""
         if event.button == 1:
             self._active = False
             self._xy = None
 
     def _mouse_motion(self, event):
+        """Handler for mouse motion"""
         if self._active:
             dx = event.x - self._xy[0]
             dy = event.y - self._xy[1]
             self._xy = (event.x, event.y)
-            theta = -0.005 * dx
-            phi = 0.005 * dy
+            rot1 = Quaternion.from_v_theta(self._ax_UD,
+                                           self._step_UD * dy)
+            rot2 = Quaternion.from_v_theta(self._ax_LR,
+                                           self._step_LR * dx)
 
-            self.current_rot = (self.current_rot *
-                                Quaternion.from_v_theta((1, 0, 0), phi) *
-                                Quaternion.from_v_theta((0, 1, 0), theta))
-
+            self.current_rot = (self.current_rot * rot1 * rot2)
             self.draw_cube()
             
 
@@ -234,5 +311,4 @@ if __name__ == '__main__':
     fig = plt.figure()
     ax = CubeAxes(fig, [0, 0, 1, 1])
     fig.add_axes(ax)
-    ax.draw_cube()
     plt.show()
