@@ -244,7 +244,7 @@ class CubeAxes(Axes):
             [self.add_patch(self._cube_poly[i]) for i in range(6)]
 
         faces = self.project_points(self.faces, rot, zloc)
-        zorder = np.argsort(np.argsort(faces[:, :, 2].sum(1)))
+        zorder = np.argsort(np.argsort(faces[:, :4, 2].sum(1)))
 
         [self._cube_poly[i].set_zorder(10 * zorder[i]) for i in range(6)]
         [self._cube_poly[i].set_xy(faces[i, :, :2]) for i in range(6)]
