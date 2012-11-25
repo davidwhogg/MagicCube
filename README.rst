@@ -7,20 +7,20 @@ It had to happen someday.  Somebody stop me!
    :alt: cube views
    :align: left
 
-Author
-------
+Authors
+-------
 
 - **David W. Hogg** (NYU)
+- **Jacob Vanderplas** (UW)
 
 Usage
 -----
 
-All of the code is in `code/cube.py`.  The comments in that file
-explain the usage.
+For now: *RTFSC*.
 
 License
 -------
 
-All content copyright 2012 the author.
+All content copyright 2012 the authors.
 **Magic Cube** is licensed under the *GPLv2 License*.
 See the `LICENSE.txt` file for more information.
