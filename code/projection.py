@@ -157,6 +157,7 @@ def project_points(points, q, view, vertical=[0, 1, 0]):
     dpoint_view = np.dot(dpoint, view).reshape(dpoint.shape[:-1] + (1,))
     dproj = -dpoint * v2 / dpoint_view
 
-    return np.vstack([np.dot(dproj, xdir),
-                      np.dot(dproj, ydir),
-                      -np.dot(dpoint, zdir)]).T
+    trans = range(1, dproj.ndim) + [0]
+    return np.array([np.dot(dproj, xdir),
+                     np.dot(dproj, ydir),
+                     -np.dot(dpoint, zdir)]).transpose(trans)
