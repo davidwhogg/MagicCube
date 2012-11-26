@@ -172,7 +172,10 @@ class Cube:
             ntot = (n_last + n) % 4
             if abs(ntot - 4) < abs(ntot):
                 ntot = ntot - 4
-            self._move_list[-1] = (f, ntot, layer)
+            if np.allclose(ntot, 0):
+                self._move_list = self._move_list[:-1]
+            else:
+                self._move_list[-1] = (f, ntot, layer)
         else:
             self._move_list.append((f, n, layer))
         
@@ -446,14 +449,14 @@ if __name__ == '__main__':
     c = Cube(N)
 
     # do a 3-corner swap
-    c.rotate_face('R')
-    c.rotate_face('D')
-    c.rotate_face('R', -1)
-    c.rotate_face('U', -1)
-    c.rotate_face('R')
-    c.rotate_face('D', -1)
-    c.rotate_face('R', -1)
-    c.rotate_face('U')
+    #c.rotate_face('R')
+    #c.rotate_face('D')
+    #c.rotate_face('R', -1)
+    #c.rotate_face('U', -1)
+    #c.rotate_face('R')
+    #c.rotate_face('D', -1)
+    #c.rotate_face('R', -1)
+    #c.rotate_face('U')
 
     c.draw_interactive()
 
