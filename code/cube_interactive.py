@@ -168,7 +168,10 @@ class Cube:
         except:
             f_last, n_last, layer_last = None, None, None
         if (f == f_last) and (layer == layer_last):
-            self._move_list[-1] = (f, n_last + n, layer)
+            ntot = n_last + n
+            if abs(ntot % 4) < abs(ntot):
+                ntot = ntot % 4
+            self._move_list[-1] = (f, ntot, layer)
         else:
             self._move_list.append((f, n, layer))
         
@@ -330,10 +333,11 @@ class InteractiveCube(plt.Axes):
         self._current_rot = self._current_rot * rot
 
     def rotate_face(self, face, turns=1, layer=0, steps=5):
-        for i in range(steps):
-            self.cube.rotate_face(face, turns * 1. / steps,
-                                  layer=layer)
-            self._draw_cube()
+        if turns != 0:
+            for i in range(steps):
+                self.cube.rotate_face(face, turns * 1. / steps,
+                                      layer=layer)
+                self._draw_cube()
 
     def _reset_view(self, *args):
         self.set_xlim(self._start_xlim)
