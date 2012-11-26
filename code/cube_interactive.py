@@ -254,6 +254,7 @@ class InteractiveCube(plt.Axes):
         self._button2 = False  # true when button 2 is pressed
         self._event_xy = None  # store xy position of mouse event
         self._shift = False  # shift key pressed
+        self._digit_flags = np.zeros(10, dtype=bool)  # digits 0-9 pressed
 
         self._current_rot = self._start_rot  #current rotation state
         self._face_polys = None
@@ -337,7 +338,7 @@ class InteractiveCube(plt.Axes):
         self._current_rot = self._current_rot * rot
 
     def rotate_face(self, face, turns=1, layer=0, steps=5):
-        if turns != 0:
+        if not np.allclose(turns, 0):
             for i in range(steps):
                 self.cube.rotate_face(face, turns * 1. / steps,
                                       layer=layer)
@@ -359,7 +360,8 @@ class InteractiveCube(plt.Axes):
         """Handler for key press events"""
         if event.key == 'shift':
             self._shift = True
-
+        elif event.key.isdigit():
+            self._digit_flags[int(event.key)] = 1
         elif event.key == 'right':
             if self._shift:
                 ax_LR = self._ax_LR_alt
@@ -385,7 +387,12 @@ class InteractiveCube(plt.Axes):
                 direction = -1
             else:
                 direction = 1
-            self.rotate_face(event.key.upper(), direction)
+
+            if np.any(self._digit_flags[:N]):
+                for d in np.arange(N)[self._digit_flags[:N]]:
+                    self.rotate_face(event.key.upper(), direction, layer=d)
+            else:
+                self.rotate_face(event.key.upper(), direction)
                 
         self._draw_cube()
 
@@ -393,6 +400,8 @@ class InteractiveCube(plt.Axes):
         """Handler for key release event"""
         if event.key == 'shift':
             self._shift = False
+        elif event.key.isdigit():
+            self._digit_flags[int(event.key)] = 0
 
     def _mouse_press(self, event):
         """Handler for mouse button press"""

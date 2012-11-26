@@ -38,7 +38,9 @@ Controls
 - **Arrow keys** may also be used to change the viewing angle.  The shift
   key has the same effect
 - **U/D/L/R/B/F** keys rotate the faces a quarter turn clockwise.  Hold the
-  shift key to rotate counter-clockwise.
+  shift key to rotate counter-clockwise.  Hold a number i to turn the slab
+  at a depth i (e.g. for a 3x3 cube, holding "1" and pressing "L" will turn
+  the center slab).
 
 Other
 ~~~~~
