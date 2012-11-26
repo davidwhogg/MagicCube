@@ -167,10 +167,11 @@ class Cube:
             f_last, n_last, layer_last = self._move_list[-1]
         except:
             f_last, n_last, layer_last = None, None, None
+
         if (f == f_last) and (layer == layer_last):
-            ntot = n_last + n
-            if abs(ntot % 4) < abs(ntot):
-                ntot = ntot % 4
+            ntot = (n_last + n) % 4
+            if abs(ntot - 4) < abs(ntot):
+                ntot = ntot - 4
             self._move_list[-1] = (f, ntot, layer)
         else:
             self._move_list.append((f, n, layer))
@@ -378,9 +379,9 @@ class InteractiveCube(plt.Axes):
                                                 -5 * self._step_UD))
         elif event.key.upper() in 'LRUDBF':
             if self._shift:
-                direction = -1.
+                direction = -1
             else:
-                direction = 1.
+                direction = 1
             self.rotate_face(event.key.upper(), direction)
                 
         self._draw_cube()
@@ -436,7 +437,13 @@ class InteractiveCube(plt.Axes):
                 self.figure.canvas.draw()
 
 if __name__ == '__main__':
-    c = Cube(3)
+    import sys
+    try:
+        N = int(sys.argv[1])
+    except:
+        N = 3
+
+    c = Cube(N)
 
     # do a 3-corner swap
     c.rotate_face('R')
