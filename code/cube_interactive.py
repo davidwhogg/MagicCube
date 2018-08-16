@@ -73,10 +73,10 @@ class Cube:
 
     # Define rotation angles and axes for the six sides of the cube
     x, y, z = np.eye(3)
-    rots = [Quaternion.from_v_theta(x, theta)
-            for theta in (np.pi / 2, -np.pi / 2)]
-    rots += [Quaternion.from_v_theta(y, theta)
-             for theta in (np.pi / 2, -np.pi / 2, np.pi, 2 * np.pi)]
+    rots = [Quaternion.from_v_theta(np.eye(3)[0], theta)
+    for theta in (np.pi / 2, -np.pi / 2)]
+    rots += [Quaternion.from_v_theta(np.eye(3)[1], theta)
+    for theta in (np.pi / 2, -np.pi / 2, np.pi, 2 * np.pi)]
 
     # define face movements
     facesdict = dict(F=z, B=-z,
