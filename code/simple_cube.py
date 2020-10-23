@@ -133,13 +133,17 @@ class CubeAxes(Axes):
     The cube has side-length 2, and the observer is a distance zloc away
     along the z-axis.
     """
-    face = np.array([[1, 1], [1, -1], [-1, -1], [-1, 1], [1, 1]])
-    faces = np.array([np.hstack([face[:, :i],
+
+    def faces():
+        face = np.array([[1, 1], [1, -1], [-1, -1], [-1, 1], [1, 1]])
+        return np.array([np.hstack([face[:, :i],
                                  np.ones((5, 1)),
                                  face[:, i:]]) for i in range(3)] +
                      [np.hstack([face[:, :i],
                                  -np.ones((5, 1)),
                                  face[:, i:]]) for i in range(3)])
+    faces = faces()
+
     stickercolors = ["#ffffff", "#00008f", "#ff6f00",
                      "#ffcf00", "#009f0f", "#cf0000"]
 
